@@ -25,16 +25,16 @@ declare -g dns=""
 full_install() {
     distro=$(grep "^ID=" /etc/os-release | cut -d '=' -f2 | sed -e 's/"//g')
     id=$(grep "^ID_LIKE=" /etc/os-release | cut -d '=' -f2 | sed -e 's/"//g')
-    $id=${id:-$distro}
+    id=${id:-$distro}
     clear
     case $id in
         debian*)
             printf "%s%sDebian based system detected%s\n" "$CBL" "$CGR" "$CNC"
-            if ! dpkg -l | awk '/wireguard/{found=1} END{exit !found}' > /dev/null; then
+            if ! dpkg -l | awk '/wireguard/{found=1} END{exit !found}'; then
                 apt-get install -y wireguard
             fi
 
-            if ! dpkg -l | grep -iq "qrencode" > /dev/null; then
+            if ! dpkg -l | grep -iq "qrencode"; then
                 apt-get install -y qrencode
             fi
         ;;
@@ -92,7 +92,7 @@ install_wireguard() {
             2)
                 clear
                 read -rp "What port do you want for the Wireguard server?: " port
-                if [ $port -lt 1024 ] || [ $port -gt 65535 ]; then
+                if [[ ! "$port" =~ ^[0-9]+$ ]] || [ "$port" -lt 1024 ] || [ "$port" -gt 65535 ]; then
                     printf "[ %s%sERROR%s ] Choose a valid port" "$BLD" "$CRE" "$CNC"
                 fi
                 break
@@ -136,7 +136,7 @@ new_client() {
             break
         else
             clear
-            printf "[ %s%sERROR%s ] Introduce a device name"
+            printf "[ %s%sERROR%s ] Introduce un device name" "$BLD" "$CRE" "$CNC"
         fi
     done
 
@@ -146,7 +146,7 @@ new_client() {
     priv_key=$(cat /etc/wireguard/clients/"$client".key)
     pub_server_key=$(cat /etc/wireguard/keys/server.key.pub)
     pub_key=$(cat /etc/wireguard/clients/"$client".key.pub)
-    pub_ip=$(curl ipinfo.io/ip)
+    pub_ip=$(curl -s ifconfig.me || curl -s ipinfo.io/ip)
     port=$(sudo grep "^ListenPort" /etc/wireguard/wg0.conf | cut -d '=' -f2)
     port=${port// /}
 
@@ -173,7 +173,7 @@ new_client() {
             ;;
             *)
                 clear
-                printf "[ %s%sERROR%s ] Choose a valid option: [1-3] " opt
+                read -rp "$(printf "[ %s%sERROR%s ] Choose a valid option: [1-3] " "$BLD" "$CRE" "$CNC")"  opt
             ;;
         esac
     done
@@ -215,7 +215,7 @@ revoke_client() {
     files=$(ls $dir | cut -d. -f1 | sort | uniq)
 
     cont=1
-    if [ $(ls -a /etc/wireguard/clients | wc -l) -le 2 ]; then
+    if [ -z "$(ls -A /etc/wireguard/clients 2>/dev/null)" ]; then
         printf "[ %s%sERROR%s ] There are no clients" "$BLD" "$CRE" "$CNC"
         exit
     else
@@ -262,8 +262,10 @@ remove_wireguard() {
         ;;
     esac
 
-    wg_dev=$(basename $(ls -a /etc/wireguard | grep ".conf$") | cut -d '.' -f1)
-    ip link delete $wg_dev
+    wg_dev=$(ls /etc/wireguard/*.conf 2>/dev/null | head -n 1 | xargs -n1 basename | cut -d '.' -f1)
+    if [ -n "$wg_dev" ]; then
+        ip link delete "$wg_dev"
+    fi
     rm -rf /etc/wireguard
 }
 
@@ -285,7 +287,7 @@ generate_qr() {
     files=$(ls $dir | cut -d. -f1 | sort | uniq)
 
     cont=1
-    if [ $(ls -a /etc/wireguard/clients | wc -l) -le 2 ]; then
+    if [ -z "$(ls -A /etc/wireguard/clients 2>/dev/null)" ]; then
         printf "[ %s%sERROR%s ] There are no clients" "$BLD" "$CRE" "$CNC"
         exit
     else
