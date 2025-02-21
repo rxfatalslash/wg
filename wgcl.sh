@@ -173,7 +173,7 @@ new_client() {
             ;;
             *)
                 clear
-                read -rp "$(printf "[ %s%sERROR%s ] Choose a valid option: [1-3] " "$BLD" "$CRE" "$CNC")"  opt
+                printf "[ %s%sERROR%s ] Choose a valid option: [1-3] "opt
             ;;
         esac
     done
