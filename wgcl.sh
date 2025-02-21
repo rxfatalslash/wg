@@ -185,8 +185,8 @@ DNS = $dns
 
 [Peer]
 PublicKey = $pub_server_key
-AllowedIPs = 0.0.0.0/0
 Endpoint = $pub_ip:$port
+AllowedIPs = 0.0.0.0/0
 PersistentKeepAlive = 25" > /etc/wireguard/clients/"$client".conf
 
     # wg set wg0 peer $pub_key allowed-ips $client_ip
